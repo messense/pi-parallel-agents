@@ -503,8 +503,12 @@ export default function (pi: ExtensionAPI) {
         const successCount = results.filter((r) => r.exitCode === 0).length;
         const summaries = results.map((r) => {
           const output = r.output;
-          const preview = output.slice(0, 100) + (output.length > 100 ? "..." : "");
-          return `[${r.name || r.id}] ${r.exitCode === 0 ? "completed" : "failed"}: ${preview || "(no output)"}`;
+          const preview = output.slice(0, 200) + (output.length > 200 ? "..." : "");
+          const stats: string[] = [];
+          if (r.usage.turns > 0) stats.push(`${r.usage.turns} turns`);
+          if (r.model) stats.push(r.model);
+          const statsStr = stats.length > 0 ? ` (${stats.join(", ")})` : "";
+          return `[${r.name || r.id}]${statsStr} ${r.exitCode === 0 ? "completed" : "failed"}: ${preview || "(no output)"}`;
         });
 
         return {
