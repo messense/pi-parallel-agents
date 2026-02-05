@@ -14,6 +14,9 @@
  * existing agent definitions from ~/.pi/agent/agents or .pi/agents.
  */
 
+import * as fs from "node:fs";
+import * as os from "node:os";
+import * as path from "node:path";
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import {
   type ParallelParams,
@@ -506,8 +509,8 @@ export default function (pi: ExtensionAPI) {
 
         const successCount = results.filter((r) => r.exitCode === 0).length;
         
-        // Build detailed summaries - include substantial output to avoid re-running
-        const summaries = results.map((r) => {
+        // Build detailed summaries - save full output to files when truncated
+        const summaries = results.map((r, idx) => {
           const output = r.output.trim();
           const stats: string[] = [];
           if (r.usage.turns > 0) stats.push(`${r.usage.turns} turns`);
@@ -515,13 +518,27 @@ export default function (pi: ExtensionAPI) {
           const statsStr = stats.length > 0 ? ` (${stats.join(", ")})` : "";
           const status = r.exitCode === 0 ? "✓" : "✗";
           
-          // Include more output - up to 2000 chars per task
+          // Include output - up to 2000 chars per task, save full to file if longer
           const maxLen = 2000;
-          const outputPreview = output.length > maxLen 
-            ? output.slice(0, maxLen) + `\n... [${output.length - maxLen} more chars]`
-            : output;
+          let outputSection: string;
           
-          return `### ${status} ${r.name || r.id}${statsStr}\n\n${outputPreview || "(no output)"}`;
+          if (output.length > maxLen) {
+            // Save full output to temp file
+            const safeName = (r.name || r.id || `task_${idx}`).replace(/[^\w.-]/g, "_");
+            const outputPath = path.join(os.tmpdir(), `parallel-${safeName}-${Date.now()}.md`);
+            try {
+              fs.writeFileSync(outputPath, output, "utf-8");
+              r.fullOutputPath = outputPath;
+              outputSection = output.slice(0, maxLen) + `\n\n... [truncated, full output: ${outputPath}]`;
+            } catch {
+              // If write fails, just show truncated
+              outputSection = output.slice(0, maxLen) + `\n... [${output.length - maxLen} more chars]`;
+            }
+          } else {
+            outputSection = output || "(no output)";
+          }
+          
+          return `### ${status} ${r.name || r.id}${statsStr}\n\n${outputSection}`;
         });
 
         return {
