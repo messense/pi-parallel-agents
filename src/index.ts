@@ -107,6 +107,10 @@ export default function (pi: ExtensionAPI) {
       "Agents: Reference existing agents by name (from ~/.pi/agent/agents or .pi/agents).",
       "Set agentScope to 'both' to include project-local agents.",
       "Agent settings (model, tools, systemPrompt) are used as defaults; inline params override.",
+      "",
+      "IMPORTANT: Each agent runs in the same working directory with full tool access (read, bash, etc).",
+      "Do NOT pre-fetch data or write temp files for agents - they can use git, grep, find, etc. directly.",
+      "Just describe what they should do; they'll gather the information themselves.",
     ].join("\n"),
     parameters: ParallelParamsSchema,
 
