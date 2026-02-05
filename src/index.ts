@@ -505,21 +505,30 @@ export default function (pi: ExtensionAPI) {
         const results = parallelResults.filter((r): r is TaskResult => r !== undefined);
 
         const successCount = results.filter((r) => r.exitCode === 0).length;
+        
+        // Build detailed summaries - include substantial output to avoid re-running
         const summaries = results.map((r) => {
-          const output = r.output;
-          const preview = output.slice(0, 200) + (output.length > 200 ? "..." : "");
+          const output = r.output.trim();
           const stats: string[] = [];
           if (r.usage.turns > 0) stats.push(`${r.usage.turns} turns`);
           if (r.model) stats.push(r.model);
           const statsStr = stats.length > 0 ? ` (${stats.join(", ")})` : "";
-          return `[${r.name || r.id}]${statsStr} ${r.exitCode === 0 ? "completed" : "failed"}: ${preview || "(no output)"}`;
+          const status = r.exitCode === 0 ? "✓" : "✗";
+          
+          // Include more output - up to 2000 chars per task
+          const maxLen = 2000;
+          const outputPreview = output.length > maxLen 
+            ? output.slice(0, maxLen) + `\n... [${output.length - maxLen} more chars]`
+            : output;
+          
+          return `### ${status} ${r.name || r.id}${statsStr}\n\n${outputPreview || "(no output)"}`;
         });
 
         return {
           content: [
             {
               type: "text",
-              text: `Parallel: ${successCount}/${results.length} succeeded${aborted ? " (aborted)" : ""}\n\n${summaries.join("\n\n")}`,
+              text: `## Parallel: ${successCount}/${results.length} succeeded${aborted ? " (aborted)" : ""}\n\n${summaries.join("\n\n---\n\n")}`,
             },
           ],
           details: makeDetails("parallel", results, progress),
