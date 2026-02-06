@@ -1,6 +1,6 @@
 {
   "name": "pi-parallel-agents",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "Dynamic parallel agent execution for pi - run multiple agents with different models without pre-defining configurations",
   "keywords": [
     "pi-package",
